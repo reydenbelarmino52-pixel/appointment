@@ -1,0 +1,77 @@
+CREATE DATABASE IF NOT EXISTS student_management_db;
+USE student_management_db;
+
+-- 1. Users Table (Role-based access: admin, staff, student)
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id_or_emp_id VARCHAR(50) NOT NULL UNIQUE,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'staff', 'student') NOT NULL DEFAULT 'student',
+    department VARCHAR(100) NULL,
+    contact_no VARCHAR(20) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Staff Availability / Slots
+CREATE TABLE staff_schedules (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    staff_id INT NOT NULL,
+    available_date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    max_slots INT DEFAULT 1,
+    status ENUM('available', 'full', 'cancelled') DEFAULT 'available',
+    FOREIGN KEY (staff_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 3. Appointments Table
+CREATE TABLE appointments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    appointment_code VARCHAR(20) NOT NULL UNIQUE,
+    student_id INT NOT NULL,
+    schedule_id INT NOT NULL,
+    purpose TEXT NOT NULL,
+    status ENUM('Pending', 'Approved', 'Completed', 'Cancelled', 'Declined') DEFAULT 'Pending',
+    admin_remarks TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (schedule_id) REFERENCES staff_schedules(id) ON DELETE RESTRICT
+);
+
+-- 4. Service Categories for Document/Concern Requests
+CREATE TABLE request_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    category_name VARCHAR(100) NOT NULL, -- e.g., 'Transcript of Records', 'Good Moral', 'Academic Consultation'
+    department VARCHAR(100) NOT NULL,
+    description TEXT NULL
+);
+
+-- 5. Student Requests Table
+CREATE TABLE student_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tracking_code VARCHAR(20) NOT NULL UNIQUE,
+    student_id INT NOT NULL,
+    category_id INT NOT NULL,
+    details TEXT NOT NULL,
+    status ENUM('Pending', 'Approved', 'In Process', 'Completed', 'Declined') DEFAULT 'Pending',
+    assigned_staff_id INT NULL,
+    admin_remarks TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES request_categories(id) ON DELETE RESTRICT,
+    FOREIGN KEY (assigned_staff_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- 6. Notifications Table
+CREATE TABLE notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
